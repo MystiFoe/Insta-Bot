@@ -150,7 +150,7 @@ class EngagementManager:
                     result['error'] = True
 
             # Comment on post
-            if comment_post and result['liked']:  # Only comment if like was successful
+            if comment_post and (not like_post or result['liked']):
                 # Generate appropriate comment
                 caption = getattr(media, 'caption_text', '')
                 hashtags = self._extract_hashtags(caption)

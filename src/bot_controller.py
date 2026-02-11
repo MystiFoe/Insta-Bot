@@ -80,7 +80,7 @@ class BotController:
             self.config_manager = ConfigManager(self.config_path)
             self.config_manager.load()
 
-            self.bot = InstagramBot(self.config, dry_run=False, challenge_code_handler=self._handle_challenge_code)
+            self.bot = InstagramBot(self.config, dry_run=False, challenge_code_handler=self._handle_challenge_code, stop_flag=self._stop_flag)
             comment_gen = create_comment_generator()
             self.engagement = EngagementManager(self.bot, self.config, comment_gen)
 

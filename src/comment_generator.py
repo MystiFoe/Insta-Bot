@@ -59,7 +59,8 @@ class AICommentGenerator:
                             "- Never use hashtags in comments\n"
                             "- Never repeat yourself - vary your style\n"
                             "- Don't be overly generic - reference the content\n"
-                            "- Don't use quotes around the comment"
+                            "- Don't use quotes around the comment\n"
+                            "- Always write comments in English regardless of the post language"
                         )
                     },
                     {

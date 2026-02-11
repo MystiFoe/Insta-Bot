@@ -40,7 +40,7 @@ class ActionStats:
 class InstagramBot:
     """Main Instagram bot class with session management and rate limiting."""
 
-    def __init__(self, config: BotConfig, dry_run: bool = False, challenge_code_handler=None):
+    def __init__(self, config: BotConfig, dry_run: bool = False, challenge_code_handler=None, stop_flag=None):
         """
         Initialize Instagram bot.
 
@@ -48,6 +48,7 @@ class InstagramBot:
             config: Bot configuration object
             dry_run: If True, don't perform actual actions (testing mode)
             challenge_code_handler: Callback function(username, choice) that returns verification code
+            stop_flag: threading.Event used to interrupt sleeps on stop
         """
         self.config = config
         self.dry_run = dry_run
@@ -55,6 +56,7 @@ class InstagramBot:
         self.stats = ActionStats()
         self.session_file = Path(config.safety.session_file)
         self.stats_file = Path(config.safety.session_file).parent / "stats.json"
+        self._stop_flag = stop_flag
 
         # Set updated device settings (default instagrapi version is outdated)
         self.client.set_device({
@@ -222,7 +224,10 @@ class InstagramBot:
             logger.info(f"Waiting {self.config.safety.cooldown_minutes} minutes...")
             self.stats.errors_count += 1
             self._save_stats()
-            time.sleep(self.config.safety.cooldown_minutes * 60)
+            if self._stop_flag:
+                self._stop_flag.wait(timeout=self.config.safety.cooldown_minutes * 60)
+            else:
+                time.sleep(self.config.safety.cooldown_minutes * 60)
             return False
 
         except Exception as e:
@@ -270,7 +275,10 @@ class InstagramBot:
             logger.info(f"Waiting {self.config.safety.cooldown_minutes} minutes...")
             self.stats.errors_count += 1
             self._save_stats()
-            time.sleep(self.config.safety.cooldown_minutes * 60)
+            if self._stop_flag:
+                self._stop_flag.wait(timeout=self.config.safety.cooldown_minutes * 60)
+            else:
+                time.sleep(self.config.safety.cooldown_minutes * 60)
             return False
 
         except Exception as e:
@@ -303,13 +311,16 @@ class InstagramBot:
         # Check if any limit is reached (for general check)
         return all(current < limit for current, limit in limits_map.values())
 
-    def human_delay(self, min_seconds: Optional[int] = None, max_seconds: Optional[int] = None) -> None:
+    def human_delay(self, min_seconds: Optional[int] = None, max_seconds: Optional[int] = None) -> bool:
         """
-        Add human-like delay between actions.
+        Add human-like delay between actions. Interruptible via stop_flag.
 
         Args:
             min_seconds: Minimum delay (uses config if None)
             max_seconds: Maximum delay (uses config if None)
+
+        Returns:
+            True if delay completed normally, False if interrupted by stop
         """
         if min_seconds is None:
             min_seconds = self.config.limits.min_delay_seconds
@@ -318,7 +329,16 @@ class InstagramBot:
 
         delay = random.randint(min_seconds, max_seconds)
         logger.debug(f"Waiting {delay} seconds...")
+
+        if self._stop_flag:
+            interrupted = self._stop_flag.wait(timeout=delay)
+            if interrupted:
+                logger.info("Delay interrupted by stop signal")
+                return False
+            return True
+
         time.sleep(delay)
+        return True
 
     def is_active_hours(self) -> bool:
         """
