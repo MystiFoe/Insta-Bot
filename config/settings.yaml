@@ -1,0 +1,59 @@
+instagram:
+  username: ""  # Leave empty, will use .env
+  password: ""  # Leave empty, will use .env
+
+campaigns:
+  - name: "fitness_campaign"
+    hashtags:
+      - "fitness"
+      - "gym"
+      - "workout"
+    max_posts_per_hashtag: 10
+    like_posts: true
+    comment_posts: true
+
+  - name: "travel_campaign"
+    hashtags:
+      - "travel"
+      - "wanderlust"
+      - "adventure"
+    max_posts_per_hashtag: 15
+    like_posts: true
+    comment_posts: false
+
+  - name: "food_campaign"
+    hashtags:
+      - "foodie"
+      - "foodporn"
+      - "instafood"
+    max_posts_per_hashtag: 10
+    like_posts: true
+    comment_posts: true
+
+limits:
+  max_likes_per_day: 50      # Conservative starting limit
+  max_comments_per_day: 20    # Very conservative
+  max_follows_per_day: 30
+  max_unfollows_per_day: 30
+  min_delay_seconds: 30
+  max_delay_seconds: 60
+  active_hours_start: 8
+  active_hours_end: 23
+
+safety:
+  skip_verified: true         # Skip verified accounts
+  skip_business: false        # Don't skip business accounts
+  min_followers: 0            # Minimum followers for engagement (set to 0 for testing)
+  max_followers: 50000        # Maximum followers for engagement
+  error_threshold: 3          # Max errors before cooldown
+  cooldown_minutes: 60        # Cooldown duration after errors
+  session_file: "data/sessions/session.json"
+
+logging:
+  level: "INFO"               # DEBUG, INFO, WARNING, ERROR
+  console: true
+  file: true
+  actions_log: "data/logs/actions.log"
+  errors_log: "data/logs/errors.log"
+  max_bytes: 10485760         # 10MB
+  backup_count: 5
