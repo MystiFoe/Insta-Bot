@@ -784,7 +784,11 @@ class BotGUI:
         if action_type == 'like':
             self._log_message(f"Liked @{username}", 'like')
         elif action_type == 'comment':
-            self._log_message(f"Commented on @{username}", 'comment')
+            comment_text = action.get('comment', '')
+            if comment_text:
+                self._log_message(f"Commented on @{username}: \"{comment_text}\"", 'comment')
+            else:
+                self._log_message(f"Commented on @{username}", 'comment')
         else:
             self._log_message(f"{action_type} @{username}", 'info')
 

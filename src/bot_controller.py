@@ -10,7 +10,7 @@ from enum import Enum
 
 from .bot import InstagramBot
 from .config import get_config, ConfigManager, BotConfig
-from .comment_generator import TemplateCommentGenerator
+from .comment_generator import create_comment_generator
 from .engagement import EngagementManager
 
 
@@ -81,7 +81,7 @@ class BotController:
             self.config_manager.load()
 
             self.bot = InstagramBot(self.config, dry_run=False, challenge_code_handler=self._handle_challenge_code)
-            comment_gen = TemplateCommentGenerator()
+            comment_gen = create_comment_generator()
             self.engagement = EngagementManager(self.bot, self.config, comment_gen)
 
             self._log("Bot initialized successfully")
@@ -348,7 +348,8 @@ class BotController:
                         'timestamp': self._get_timestamp(),
                         'action': 'comment',
                         'username': media.user.username,
-                        'media_id': str(media.pk)
+                        'media_id': str(media.pk),
+                        'comment': result.get('comment_text', '')
                     }
                     self._notify_action(action)
 
@@ -440,7 +441,8 @@ class BotController:
                                 'timestamp': self._get_timestamp(),
                                 'action': 'comment',
                                 'username': media.user.username,
-                                'media_id': str(media.pk)
+                                'media_id': str(media.pk),
+                                'comment': result.get('comment_text', '')
                             }
                             self._notify_action(action)
 

@@ -135,7 +135,7 @@ class EngagementManager:
         Returns:
             Dictionary with action results
         """
-        result = {'liked': False, 'commented': False, 'error': False}
+        result = {'liked': False, 'commented': False, 'comment_text': '', 'error': False}
 
         media_id = str(media.pk)
         logger.info(f"Engaging with post {media_id} by @{media.user.username}")
@@ -164,6 +164,7 @@ class EngagementManager:
 
                 if self.bot.comment_post(media_id, comment_text):
                     result['commented'] = True
+                    result['comment_text'] = comment_text
                     self.track_action('comment', media_id, media.user.username, comment_text)
                 else:
                     result['error'] = True

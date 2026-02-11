@@ -1,15 +1,127 @@
 """
-Template-based comment generation module.
+Comment generation module with AI (OpenAI) primary and template fallback.
 """
 
 import json
+import os
 import random
 from pathlib import Path
 from typing import List, Dict, Set, Optional
 import logging
 
+from openai import OpenAI
+
 
 logger = logging.getLogger(__name__)
+
+
+class AICommentGenerator:
+    """Generates contextual comments using OpenAI API."""
+
+    def __init__(self, api_key: str, fallback: 'TemplateCommentGenerator'):
+        self.client = OpenAI(api_key=api_key)
+        self.fallback = fallback
+        self.used_comments: Set[str] = set()
+        logger.info("AI comment generator initialized")
+
+    def get_comment(
+        self,
+        category: Optional[str] = None,
+        caption: str = "",
+        hashtags: List[str] = None,
+        avoid_recent: bool = True
+    ) -> str:
+        try:
+            context_parts = []
+            if category:
+                context_parts.append(f"Topic: {category}")
+            if caption:
+                # Truncate long captions
+                short_caption = caption[:200] if len(caption) > 200 else caption
+                context_parts.append(f"Caption: {short_caption}")
+            if hashtags:
+                context_parts.append(f"Hashtags: {', '.join(hashtags[:5])}")
+
+            context = "\n".join(context_parts) if context_parts else "A general Instagram post"
+
+            response = self.client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are an Instagram user leaving a genuine comment on a post. "
+                            "Rules:\n"
+                            "- Write ONLY the comment text, nothing else\n"
+                            "- Keep it short: 3-8 words max\n"
+                            "- Sound casual and authentic like a real person\n"
+                            "- Use 1 emoji maximum\n"
+                            "- Never use hashtags in comments\n"
+                            "- Never repeat yourself - vary your style\n"
+                            "- Don't be overly generic - reference the content\n"
+                            "- Don't use quotes around the comment"
+                        )
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Write a comment for this Instagram post:\n{context}"
+                    }
+                ],
+                max_tokens=30,
+                temperature=0.9,
+            )
+
+            comment = response.choices[0].message.content.strip().strip('"\'')
+
+            # Avoid repeating AI comments too
+            if avoid_recent and comment in self.used_comments:
+                # Try once more with higher temperature
+                response = self.client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": (
+                                "You are an Instagram user. Write a very short, unique comment "
+                                "(3-8 words, 1 emoji max). Just the comment text, nothing else."
+                            )
+                        },
+                        {
+                            "role": "user",
+                            "content": f"Comment on this post:\n{context}"
+                        }
+                    ],
+                    max_tokens=30,
+                    temperature=1.0,
+                )
+                comment = response.choices[0].message.content.strip().strip('"\'')
+
+            self.used_comments.add(comment)
+            if len(self.used_comments) > 100:
+                self.used_comments = set(list(self.used_comments)[-50:])
+
+            logger.info(f"AI generated comment: {comment}")
+            return comment
+
+        except Exception as e:
+            logger.warning(f"AI comment generation failed: {e}, using template fallback")
+            return self.fallback.get_comment(
+                category=category, caption=caption,
+                hashtags=hashtags, avoid_recent=avoid_recent
+            )
+
+
+def create_comment_generator(templates_path: str = "config/templates.json") -> 'TemplateCommentGenerator':
+    """Factory: creates AICommentGenerator (primary) with TemplateCommentGenerator (fallback).
+    Returns an object with get_comment() method."""
+    fallback = TemplateCommentGenerator(templates_path)
+    api_key = os.getenv("OPENAI_API_KEY", "").strip()
+    if api_key:
+        logger.info("OpenAI API key found - using AI comment generation (templates as fallback)")
+        return AICommentGenerator(api_key, fallback)
+    else:
+        logger.info("No OpenAI API key - using template comments only")
+        return fallback
 
 
 class TemplateCommentGenerator:
