@@ -426,6 +426,19 @@ class BotGUI:
                                           state='readonly', font=('Segoe UI', 10))
         self.campaign_combo.pack(fill='x', padx=8, pady=8)
 
+        # AI Prompt Card
+        prompt_card = Card(parent, title="AI Comment Prompt")
+        prompt_card.pack(fill='x', pady=(0, 16))
+
+        tk.Label(prompt_card.content, text="Customize the prompt sent to AI\nfor generating comments.",
+                font=('Segoe UI', 8), bg=COLORS['card'],
+                fg=COLORS['text_muted'], justify='left').pack(anchor='w')
+
+        self.edit_prompt_btn = ModernButton(prompt_card.content, text="Edit Prompt",
+                                            command=self._open_prompt_editor, style='secondary',
+                                            width=240, height=36)
+        self.edit_prompt_btn.pack(fill='x', pady=(8, 0))
+
         # Action Buttons
         buttons_frame = tk.Frame(parent, bg=COLORS['bg'])
         buttons_frame.pack(fill='x', pady=(8, 0))
@@ -502,7 +515,7 @@ class BotGUI:
                                 activebackground=COLORS['text_muted'])
         scrollbar.pack(side='right', fill='y')
 
-        self.log_text = tk.Text(log_container, font=('Consolas', 9),
+        self.log_text = tk.Text(log_container, font=('Segoe UI', 9),
                                bg=COLORS['input_bg'], fg=COLORS['text'],
                                relief='flat', wrap='word',
                                yscrollcommand=scrollbar.set,
@@ -799,6 +812,72 @@ class BotGUI:
     def _on_log(self, message: str):
         """Handle log message from controller."""
         self.root.after(0, lambda: self._log_message(message, 'info'))
+
+    def _open_prompt_editor(self):
+        """Open a dialog to edit the AI comment generation prompt."""
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Edit AI Comment Prompt")
+        dialog.geometry("560x420")
+        dialog.configure(bg=COLORS['bg'])
+        dialog.resizable(True, True)
+        dialog.transient(self.root)
+        dialog.grab_set()
+
+        # Center on parent
+        dialog.update_idletasks()
+        x = self.root.winfo_x() + (self.root.winfo_width() - 560) // 2
+        y = self.root.winfo_y() + (self.root.winfo_height() - 420) // 2
+        dialog.geometry(f"+{x}+{y}")
+
+        # Title
+        tk.Label(dialog, text="AI System Prompt",
+                 font=('Segoe UI', 14, 'bold'), bg=COLORS['bg'],
+                 fg=COLORS['text']).pack(pady=(16, 4), padx=20, anchor='w')
+
+        tk.Label(dialog, text="This prompt instructs the AI how to generate comments.\nEdit it to change the tone, style, or rules.",
+                 font=('Segoe UI', 9), bg=COLORS['bg'],
+                 fg=COLORS['text_secondary']).pack(padx=20, anchor='w', pady=(0, 10))
+
+        # Buttons (pack FIRST so they're always visible at bottom)
+        btn_frame = tk.Frame(dialog, bg=COLORS['bg'])
+        btn_frame.pack(side='bottom', fill='x', padx=20, pady=(10, 16))
+
+        def save_prompt():
+            new_prompt = prompt_text.get('1.0', 'end-1c').strip()
+            if new_prompt:
+                self.controller.set_ai_prompt(new_prompt)
+                self._log_message("AI prompt updated", 'info')
+            dialog.destroy()
+
+        def reset_prompt():
+            from src.comment_generator import DEFAULT_AI_PROMPT
+            prompt_text.delete('1.0', 'end')
+            prompt_text.insert('1.0', DEFAULT_AI_PROMPT)
+
+        reset_btn = tk.Button(btn_frame, text="Reset Default", command=reset_prompt,
+                             font=('Segoe UI', 10), bg=COLORS['input_bg'],
+                             fg=COLORS['text'], relief='flat', padx=16, pady=8,
+                             cursor='hand2', activebackground=COLORS['border'])
+        reset_btn.pack(side='left')
+
+        save_btn = tk.Button(btn_frame, text="Save", command=save_prompt,
+                            font=('Segoe UI', 10, 'bold'), bg=COLORS['primary'],
+                            fg='#FFFFFF', relief='flat', padx=24, pady=8,
+                            cursor='hand2', activebackground=COLORS['primary_hover'])
+        save_btn.pack(side='right')
+
+        # Text editor (pack AFTER buttons so it fills remaining space)
+        text_frame = tk.Frame(dialog, bg=COLORS['border'])
+        text_frame.pack(fill='both', expand=True, padx=20, pady=(0, 0))
+
+        prompt_text = tk.Text(text_frame, font=('Segoe UI', 10),
+                             bg=COLORS['input_bg'], fg=COLORS['text'],
+                             relief='flat', wrap='word', padx=12, pady=12)
+        prompt_text.pack(fill='both', expand=True, padx=1, pady=1)
+
+        # Load current prompt
+        current_prompt = self.controller.get_ai_prompt()
+        prompt_text.insert('1.0', current_prompt)
 
     def _on_challenge_code(self) -> str:
         """Show dialog to get verification code from user. Called from bot thread."""

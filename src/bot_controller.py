@@ -10,7 +10,7 @@ from enum import Enum
 
 from .bot import InstagramBot
 from .config import get_config, ConfigManager, BotConfig
-from .comment_generator import create_comment_generator
+from .comment_generator import create_comment_generator, DEFAULT_AI_PROMPT, AICommentGenerator
 from .engagement import EngagementManager
 
 
@@ -237,6 +237,18 @@ class BotController:
         # Check if we have a valid session by checking if session file exists
         # and if we've successfully logged in during this session
         return hasattr(self, '_logged_in') and self._logged_in
+
+    def set_ai_prompt(self, prompt: str) -> None:
+        """Set a custom AI system prompt for comment generation."""
+        if self.engagement and isinstance(self.engagement.comment_generator, AICommentGenerator):
+            self.engagement.comment_generator.set_system_prompt(prompt)
+            self._log("AI comment prompt updated")
+
+    def get_ai_prompt(self) -> str:
+        """Get the current AI system prompt."""
+        if self.engagement and isinstance(self.engagement.comment_generator, AICommentGenerator):
+            return self.engagement.comment_generator.system_prompt
+        return DEFAULT_AI_PROMPT
 
     def reset_stats(self) -> None:
         """Reset daily statistics."""

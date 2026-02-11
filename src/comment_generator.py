@@ -15,6 +15,21 @@ from openai import OpenAI
 logger = logging.getLogger(__name__)
 
 
+DEFAULT_AI_PROMPT = (
+    "You are an Instagram user leaving a genuine comment on a post. "
+    "Rules:\n"
+    "- Write ONLY the comment text, nothing else\n"
+    "- Keep it short: 3-8 words max\n"
+    "- Sound casual and authentic like a real person\n"
+    "- Use 1 emoji maximum\n"
+    "- Never use hashtags in comments\n"
+    "- Never repeat yourself - vary your style\n"
+    "- Don't be overly generic - reference the content\n"
+    "- Don't use quotes around the comment\n"
+    "- Always write comments in English regardless of the post language"
+)
+
+
 class AICommentGenerator:
     """Generates contextual comments using OpenAI API."""
 
@@ -22,7 +37,13 @@ class AICommentGenerator:
         self.client = OpenAI(api_key=api_key)
         self.fallback = fallback
         self.used_comments: Set[str] = set()
+        self.system_prompt: str = DEFAULT_AI_PROMPT
         logger.info("AI comment generator initialized")
+
+    def set_system_prompt(self, prompt: str) -> None:
+        """Set a custom system prompt for AI comment generation."""
+        self.system_prompt = prompt
+        logger.info("Custom AI prompt set")
 
     def get_comment(
         self,
@@ -49,19 +70,7 @@ class AICommentGenerator:
                 messages=[
                     {
                         "role": "system",
-                        "content": (
-                            "You are an Instagram user leaving a genuine comment on a post. "
-                            "Rules:\n"
-                            "- Write ONLY the comment text, nothing else\n"
-                            "- Keep it short: 3-8 words max\n"
-                            "- Sound casual and authentic like a real person\n"
-                            "- Use 1 emoji maximum\n"
-                            "- Never use hashtags in comments\n"
-                            "- Never repeat yourself - vary your style\n"
-                            "- Don't be overly generic - reference the content\n"
-                            "- Don't use quotes around the comment\n"
-                            "- Always write comments in English regardless of the post language"
-                        )
+                        "content": self.system_prompt
                     },
                     {
                         "role": "user",
